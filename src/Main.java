@@ -41,6 +41,9 @@ public class Main extends PApplet
         obj = physics.CreateObject(new Vector3(1400.0f,200.0f,0f),new Vector2(200.0f,200.0f)); obj.TYPE = Type.Static;
 
         obj = physics.CreateObject(new Vector3(1800.0f,600.0f,0f),new Vector2(200.0f,600.0f)); obj.TYPE = Type.Static;
+        obj = physics.CreateObject(new Vector3(2600.0f,1200.0f,0f),new Vector2(200.0f,1000.0f)); obj.TYPE = Type.Static;
+
+        obj = physics.CreateObject(new Vector3(3200.0f,600.0f,0f),new Vector2(200.0f,600.0f)); obj.TYPE = Type.Static;
 
         //lose condition, seccond to last index
         obj = physics.CreateObject(new Vector3(-400.0f,15.0f,0f),new Vector2(100.0f,5000.0f)); obj.TYPE = Type.Static;
@@ -238,7 +241,7 @@ public class Main extends PApplet
                 anim = graphics.Animations.get(GraphicsHandler.AnimationNames.PLAYER_RUN);
                 dirRight = false;
             }
-            if (up && pObj.touchingObject) {
+            if (up && pObj.touchingObject && pObj.hitNormal.y != -1) {
                 //differentiate wall jumps from ground
 
                 if (pObj.hitNormal.y != 0)
