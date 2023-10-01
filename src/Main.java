@@ -2,8 +2,6 @@ import processing.core.PApplet;
 import processing.core.PImage;
 import processing.event.KeyEvent;
 
-import java.time.Duration;
-import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -12,10 +10,8 @@ public class Main extends PApplet
 {
     Physics physics = new Physics();
     GraphicsHandler graphics;
-
-    Instant startTime;
-
-
+    float loseSpeed = 0.5f;
+    int currentLevel = 0;
     public void settings()
     {
         fullScreen();
@@ -23,10 +19,32 @@ public class Main extends PApplet
 
     public void setup()
     {
-        physics.WORLD_GRAVITY = -0.3f;
         frameRate(60);
         rectMode(2);
         fill(125,125,255,255);
+
+        //load graphical assets
+        List<PImage> images = new ArrayList<>();
+        PImage image =  loadImage("Assets/PLAYER_SHEET_1.png"); images.add(image);
+
+        //backgrounds
+        image =  loadImage("Assets/SideScroller/background/bg_layer_1.png"); images.add(image);
+        image =  loadImage("Assets/SideScroller/background/bg_layer_2.png"); images.add(image);
+        image =  loadImage("Assets/SideScroller/background/bg_layer_3.png"); images.add(image);
+        graphics = new GraphicsHandler(images ,sketchWidth(),sketchHeight());
+
+        loadLevelOne();
+
+        delay(1000);
+    }
+    void loadLevelOne()
+    {
+        won = false;
+        dead = false;
+        physics = new Physics();
+        physics.WORLD_GRAVITY = -0.3f;
+
+        loseSpeed = 4.55f;
 
         Object obj;
 
@@ -41,34 +59,50 @@ public class Main extends PApplet
         obj = physics.CreateObject(new Vector3(1400.0f,200.0f,0f),new Vector2(200.0f,200.0f)); obj.TYPE = Type.Static;
 
         obj = physics.CreateObject(new Vector3(1800.0f,600.0f,0f),new Vector2(200.0f,600.0f)); obj.TYPE = Type.Static;
-        obj = physics.CreateObject(new Vector3(2600.0f,1200.0f,0f),new Vector2(200.0f,1000.0f)); obj.TYPE = Type.Static;
+        obj = physics.CreateObject(new Vector3(2600.0f,1200.0f,0f),new Vector2(100.0f,1000.0f)); obj.TYPE = Type.Static;
 
         obj = physics.CreateObject(new Vector3(3200.0f,600.0f,0f),new Vector2(200.0f,600.0f)); obj.TYPE = Type.Static;
 
         //lose condition, seccond to last index
-        obj = physics.CreateObject(new Vector3(-400.0f,15.0f,0f),new Vector2(100.0f,5000.0f)); obj.TYPE = Type.Static;
+        obj = physics.CreateObject(new Vector3(-500.0f,15.0f,0f),new Vector2(100.0f,5000.0f)); obj.TYPE = Type.Static;
         //WIN CONDITION OBJECT, ALLWAYS LAST INDEX
-        obj = physics.CreateObject(new Vector3(4000.0f,15.0f,0f),new Vector2(100.0f,500.0f)); obj.TYPE = Type.Static;
+        obj = physics.CreateObject(new Vector3(4000.0f,5000.0f,0f),new Vector2(100.0f,5000.0f)); obj.TYPE = Type.Static;
+    }
+    void loadLevelTwo()
+    {
+        won = false;
+        dead = false;
+        physics = new Physics();
+        physics.WORLD_GRAVITY = -0.3f;
 
-        //load graphical assets
-        List<PImage> images = new ArrayList<>();
-        PImage image =  loadImage("Assets/PLAYER_SHEET_1.png"); images.add(image);
+        loseSpeed = 5.55f;
 
-        //backgrounds
-        image =  loadImage("Assets/SideScroller/background/bg_layer_1.png"); images.add(image);
-        image =  loadImage("Assets/SideScroller/background/bg_layer_2.png"); images.add(image);
-        image =  loadImage("Assets/SideScroller/background/bg_layer_3.png"); images.add(image);
+        Object obj;
 
+        //player
+        obj = physics.CreateObject(new Vector3(0.0f,50.0f,0f),100.0f); obj.ELASTICITY = 0.05f;
 
-        graphics = new GraphicsHandler(images ,sketchWidth(),sketchHeight());
+        //now add ground
+        obj = physics.CreateObject(new Vector3(0.0f,0.0f,0f),new Vector2(10000.0f,1.0f)); obj.TYPE = Type.Static;//b
 
-        delay(1000);
-        startTime = Instant.now();
+        //now obstacles
+        obj = physics.CreateObject(new Vector3(1000.0f,100.0f,0f),new Vector2(200.0f,100.0f)); obj.TYPE = Type.Static;
+        obj = physics.CreateObject(new Vector3(1400.0f,200.0f,0f),new Vector2(200.0f,200.0f)); obj.TYPE = Type.Static;
+
+        obj = physics.CreateObject(new Vector3(1800.0f,600.0f,0f),new Vector2(200.0f,600.0f)); obj.TYPE = Type.Static;
+        obj = physics.CreateObject(new Vector3(2600.0f,1200.0f,0f),new Vector2(100.0f,1000.0f)); obj.TYPE = Type.Static;
+
+        obj = physics.CreateObject(new Vector3(3200.0f,600.0f,0f),new Vector2(200.0f,600.0f)); obj.TYPE = Type.Static;
+
+        //lose condition, seccond to last index
+        obj = physics.CreateObject(new Vector3(-500.0f,15.0f,0f),new Vector2(100.0f,5000.0f)); obj.TYPE = Type.Static;
+        //WIN CONDITION OBJECT, ALLWAYS LAST INDEX
+        obj = physics.CreateObject(new Vector3(4000.0f,5000.0f,0f),new Vector2(100.0f,5000.0f)); obj.TYPE = Type.Static;
     }
     public void draw()
     {
         physics.physicsTick(0.0f);
-        graphics.tickAnimations();
+        graphics.tickGraphics();
 
         background(0);
         //tickBackground();
@@ -77,9 +111,20 @@ public class Main extends PApplet
         tickCamera();
         renderHitboxes();
     }
-    float loseSpeed = 0.5f;
+    void drawParticles()
+    {
+        
+    }
     void tickLoseCondition()
     {
+        if(dead)
+        {
+            textSize(30); fill(255,255,255);
+            text("YOU LOSE!\nPress space to retry, or press backspace to go to level one",sketchWidth()/2.0f,sketchHeight()/2.0f);
+            return;
+        }
+        if(won)
+            return;
         var obj = physics.PHYSICS_OBJECTS.get(physics.PHYSICS_OBJECTS.size()-2);
         obj.POS.x += loseSpeed;
     }
@@ -145,6 +190,7 @@ public class Main extends PApplet
     //region input
     public void keyPressed(KeyEvent event)
     {
+        System.out.println(event.getKeyCode());
         switch (event.getKeyCode())
         {
             case UP:
@@ -162,6 +208,24 @@ public class Main extends PApplet
             case SHIFT:
                 dash = true;
                 break;
+            case 32: //spacebar
+                if(!dead && !won)
+                    break;
+
+                if(dead)
+                {
+                    if (currentLevel == 1)
+                        loadLevelOne();
+                    else loadLevelTwo();
+                    break;
+                }
+
+                //on win since there are only two levels then the player should only be loading level two if they win level two or one.
+                loadLevelTwo();
+            case BACKSPACE:
+                if(!won && !dead)
+                    break;
+                loadLevelOne();
         }
     }
     public void keyReleased(KeyEvent event)
@@ -190,14 +254,16 @@ public class Main extends PApplet
     {
         if(remainingRecoveryFrames != 0)
             remainingRecoveryFrames--;
-
         var pObj = physics.PHYSICS_OBJECTS.get(0);
         GraphicsHandler.Animation anim = null;
 
+
+        //========================== tick controls and movement =====================================================
         if(remainingDashDuration != 0 && !won && !dead)
         {
+            anim = graphics.Animations.get( GraphicsHandler.AnimationNames.PLAYER_RUN);
+            graphics.emitParticlesPresetOne(new Vector2(pObj.POS.x,pObj.POS.y));
 
-            anim = graphics.Animations.get( GraphicsHandler.AnimationNames.PLAYER_IDLE);
             if(remainingDashDuration == dashDuration)
             {
                 //set vel
@@ -296,9 +362,14 @@ public class Main extends PApplet
                     jumping = false;
             }
         }
-        //check win lose conditions
+
+
+        //================================= check win lose conditions ==================================================
         if(physics.PHYSICS_OBJECTS.get(physics.PHYSICS_OBJECTS.size()-1).touchingObject)
+        {
             won = true;
+            pObj.VELOCITY.x = 0;
+        }
         if(physics.PHYSICS_OBJECTS.get(physics.PHYSICS_OBJECTS.size()-2).touchingObject && !dead)
         {
             dead = true;
@@ -307,7 +378,12 @@ public class Main extends PApplet
         if(dead)
             anim = graphics.Animations.get(GraphicsHandler.AnimationNames.PLAYER_DIE);
 
-        //now draw
+        if(won && !dead)
+        {
+            text("YOU WIN!\nPress space to go to level 2, press backspace to go to level 1",sketchWidth()/2.0f,sketchHeight()/2.0f);
+        }
+
+        //===============================  now draw ===============================================================
         if (anim == null)
             anim = graphics.Animations.get(GraphicsHandler.AnimationNames.PLAYER_IDLE);
         Vector3 screenPos = graphics.worldToScreenSpace(pObj.POS);
