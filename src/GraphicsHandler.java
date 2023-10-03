@@ -20,22 +20,23 @@ public class GraphicsHandler
         for (var x : Animations.values())
             x.Tick();
 
-        for(var x : particles)
+        for(int i = 0; i < particles.size();i++)
         {
+            var x = particles.get(i);
             x.Tick();
             if(x.lifeTime == 0)
                 particles.remove(x);
         }
     }
-    void emitParticlesPresetOne(Vector2 origin)
+    void emitParticlesPresetOne(Vector2 origin) //constant stream, made for dashes
     {
         int amount = 3;
         int lifetime = 30;
         int minLifeTime = 15;
-        float vel = 3;
-        float size = 5.0f;
-        float angular = 5.0f;
-        float friction = 0.95f;
+        float vel = 7;
+        float size = 15.0f;
+        float angular = 0.20f;
+        float friction = 0.925f;
 
         for(int i = 0; i < amount; i++)
         {
@@ -43,8 +44,8 @@ public class GraphicsHandler
             if(lifeTime2 < minLifeTime)
                 lifeTime2 = minLifeTime;
 
-            float xVel = (float)Math.random() * vel;
-            float yVel = (float)Math.random() * vel;
+            float xVel = ((float)Math.random()-0.5f) * vel * 2.0f;
+            float yVel = ((float)Math.random()-0.5f) * vel * 2.0f;
             float size2 = (float)Math.random() * size;
             float angular2 = (float) Math.random() * angular;
             float startAngle = (float) Math.random() * 360f;
@@ -56,10 +57,80 @@ public class GraphicsHandler
                     angular2,startAngle,friction,
                     new Vector3(1.0f,1.0f,1.0f),
                     lifeTime2,
+                    true,
                     true);
 
             particles.add(obj);
         }
+    }
+    void emitParticlesPresetTwo(Vector2 origin) //short burst, made for jumps
+    {
+        int amount = 40;
+        int lifetime = 15;
+        int minLifeTime = 5;
+        float vel = 20;
+        float size = 14.0f;
+        float angular = 0.20f;
+        float friction = 0.75f;
+
+        for(int i = 0; i < amount; i++)
+        {
+            int lifeTime2 = Math.round((float)Math.random() * lifetime);
+            if(lifeTime2 < minLifeTime)
+                lifeTime2 = minLifeTime;
+
+            float xVel = ((float)Math.random()-0.5f) * vel * 2.0f;
+            float yVel = ((float)Math.random()-0.5f) * vel * 2.0f;
+            float size2 = (float)Math.random() * size;
+            float angular2 = (float) Math.random() * angular;
+            float startAngle = (float) Math.random() * 360f;
+
+            var obj = new Particle(
+                    origin,
+                    new Vector2(xVel,yVel),
+                    new Vector2(size2,size2),
+                    angular2,startAngle,friction,
+                    new Vector3(1.0f,1.0f,1.0f),
+                    lifeTime2,
+                    true,
+                    true);
+
+            particles.add(obj);
+        }
+    }
+    void emitParticlesPresetThree(Vector2 origin) //for waking, random based
+    {
+        int amount = Math.round((float)Math.random() - 0.3f); // 50 - 50 chance to spawn 1
+        if (amount == 0)
+            return;
+        int lifetime = 60;
+        int minLifeTime = 30;
+        float vel = 2;
+        float size = 10.0f;
+        float angular = 0.1f;
+        float friction = 0.975f;
+
+            int lifeTime2 = Math.round((float)Math.random() * lifetime);
+            if(lifeTime2 < minLifeTime)
+                lifeTime2 = minLifeTime;
+
+            float xVel = ((float)Math.random()-0.5f) * vel * 2.0f;
+            float yVel = ((float)Math.random()-0.5f) * vel * 2.0f;
+            float size2 = (float)Math.random() * size;
+            float angular2 = (float) Math.random() * angular;
+            float startAngle = (float) Math.random() * 360f;
+
+            var obj = new Particle(
+                    origin,
+                    new Vector2(xVel,yVel),
+                    new Vector2(size2,size2),
+                    angular2,startAngle,friction,
+                    new Vector3(1.0f,1.0f,1.0f),
+                    lifeTime2,
+                    false,
+                    true);
+
+            particles.add(obj);
     }
     enum AnimationNames
     {
@@ -72,6 +143,7 @@ public class GraphicsHandler
         BACKGROUND_L2,
         BACKGROUND_L3,
     }
+
     GraphicsHandler(List<PImage> rawImages,int screenWidth,int screenHeight)
     {
         sWidth = screenWidth;
@@ -191,8 +263,9 @@ public class GraphicsHandler
         float alpha;
         int startLifetime;
         int lifeTime;//frames
-        Boolean fadeOut;
-        Particle(Vector2 pos, Vector2 vel,Vector2 size,float angleVel,float angle,float friction, Vector3 color,int lifeTime,Boolean fadeOut)
+        Boolean fadeOut; Boolean shrink;
+        Vector2 startSize;
+        Particle(Vector2 pos, Vector2 vel,Vector2 size,float angleVel,float angle,float friction, Vector3 color,int lifeTime,Boolean fadeOut,Boolean shrink)
         {
             this.pos = pos;
             this.vel = vel;
@@ -204,7 +277,9 @@ public class GraphicsHandler
             this.alpha = 1;
             this.lifeTime = lifeTime;
             this.fadeOut = fadeOut;
+            this.shrink = shrink;
             startLifetime = lifeTime;
+            startSize = size;
         }
         void Tick()
         {
@@ -213,14 +288,19 @@ public class GraphicsHandler
             angle += angularVel;
             angularVel *= friction;
             if(fadeOut)
-            alpha = startLifetime/lifeTime;
+            alpha = (float)lifeTime/(float)startLifetime;
+            if(shrink)
+            {
+                float shrinkCoef = (float)lifeTime/(float)startLifetime;
+                Vector2 newScale = new Vector2(startSize.x*shrinkCoef,startSize.y*shrinkCoef);
+                size = newScale;
+            }
             lifeTime--;
         }
         List<Vector2> getVertices()
         {
             Vector2 v1 = new Vector2(-0.5f,0.5f);
             Vector2 v2 = new Vector2(0.5f,0.5f);
-
             Vector2 v3 = new Vector2(0.5f,-0.5f);
             Vector2 v4 = new Vector2(-0.5f,-0.5f);
 
@@ -229,11 +309,30 @@ public class GraphicsHandler
             v2.x *= size.x; v2.y *= size.y;
             v3.x *= size.x; v3.y *= size.y;
             v4.x *= size.x; v4.y *= size.y;
+
             //rotate
-            v1.x *= Math.sin(angle); v1.y *= Math.cos(angle);
-            v2.x *= Math.sin(angle); v2.y *= Math.cos(angle);
-            v3.x *= Math.sin(angle); v3.y *= Math.cos(angle);
-            v4.x *= Math.sin(angle); v4.y *= Math.cos(angle);
+            float sinValue = (float) Math.sin(angle);
+            float cosValue = (float) Math.cos(angle);
+            float tempX, tempY;
+            tempX = v1.x * cosValue - v1.y * sinValue;
+            tempY = v1.x * sinValue + v1.y * cosValue;
+            v1.x = tempX;
+            v1.y = tempY;
+
+            tempX = v2.x * cosValue - v2.y * sinValue;
+            tempY = v2.x * sinValue + v2.y * cosValue;
+            v2.x = tempX;
+            v2.y = tempY;
+
+            tempX = v3.x * cosValue - v3.y * sinValue;
+            tempY = v3.x * sinValue + v3.y * cosValue;
+            v3.x = tempX;
+            v3.y = tempY;
+
+            tempX = v4.x * cosValue - v4.y * sinValue;
+            tempY = v4.x * sinValue + v4.y * cosValue;
+            v4.x = tempX;
+            v4.y = tempY;
             //translate
             v1 = v1.add(pos);
             v2 = v2.add(pos);

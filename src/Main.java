@@ -14,6 +14,7 @@ public class Main extends PApplet
     int currentLevel = 0;
     public void settings()
     {
+
         fullScreen();
     }
 
@@ -40,7 +41,7 @@ public class Main extends PApplet
     void loadLevelOne()
     {
         won = false;
-        dead = false;
+        lose = false;
         physics = new Physics();
         physics.WORLD_GRAVITY = -0.3f;
 
@@ -71,7 +72,7 @@ public class Main extends PApplet
     void loadLevelTwo()
     {
         won = false;
-        dead = false;
+        lose = false;
         physics = new Physics();
         physics.WORLD_GRAVITY = -0.3f;
 
@@ -106,25 +107,37 @@ public class Main extends PApplet
 
         background(0);
         //tickBackground();
+        drawParticles();
         playerTick();
-        tickLoseCondition();
+        tickWinLoseCondition();
         tickCamera();
         renderHitboxes();
     }
     void drawParticles()
     {
-        
-    }
-    void tickLoseCondition()
-    {
-        if(dead)
+        for(var x: graphics.particles)
         {
-            textSize(30); fill(255,255,255);
-            text("YOU LOSE!\nPress space to retry, or press backspace to go to level one",sketchWidth()/2.0f,sketchHeight()/2.0f);
-            return;
+            int r,g,b,a;
+            r = Math.round(x.color.x*255.0f);   g = Math.round(x.color.y*255.0f);   b = Math.round(x.color.z*255.0f);   a = Math.round(x.alpha*255.0f);
+            fill(r,g,b,a);
+            var vertices = x.getVertices();
+            stroke(0,0,0,0);
+            beginShape();
+            for(var y : vertices)
+            {
+                var screenPos = graphics.worldToScreenSpace(new Vector3(y.x,y.y,0.0f));
+                vertex(screenPos.x, screenPos.y);
+            }
+            endShape();
         }
+    }
+    void tickWinLoseCondition()
+    {
+        if(lose)
+           showLose();
         if(won)
-            return;
+            showWin();
+        
         var obj = physics.PHYSICS_OBJECTS.get(physics.PHYSICS_OBJECTS.size()-2);
         obj.POS.x += loseSpeed;
     }
@@ -166,10 +179,20 @@ public class Main extends PApplet
 
          */
     }
+    void showWin()
+    {
+
+    }
+    void showLose()
+    {
+        textSize(30); fill(255,255,255);
+        text("YOU LOSE!\nPress space to retry, or press backspace to go to level one",sketchWidth()/2.0f,sketchHeight()/2.0f);
+        return;
+    }
     //player vars
     boolean dirRight = true;
     boolean jumping = false;
-    boolean dead = false;
+    boolean lose = false;
     PImage obstacle;
     boolean won = false;
     Boolean left = false,right = false,up = false,down = false,dash = false;
@@ -190,7 +213,6 @@ public class Main extends PApplet
     //region input
     public void keyPressed(KeyEvent event)
     {
-        System.out.println(event.getKeyCode());
         switch (event.getKeyCode())
         {
             case UP:
@@ -209,10 +231,10 @@ public class Main extends PApplet
                 dash = true;
                 break;
             case 32: //spacebar
-                if(!dead && !won)
+                if(!lose && !won)
                     break;
 
-                if(dead)
+                if(lose)
                 {
                     if (currentLevel == 1)
                         loadLevelOne();
@@ -223,7 +245,7 @@ public class Main extends PApplet
                 //on win since there are only two levels then the player should only be loading level two if they win level two or one.
                 loadLevelTwo();
             case BACKSPACE:
-                if(!won && !dead)
+                if(!won && !lose)
                     break;
                 loadLevelOne();
         }
@@ -252,19 +274,19 @@ public class Main extends PApplet
     //endregion
     void playerTick()//this method handles player behaviour and visuals
     {
+        //ideally I would have made it its own class, way to many out of scope variables and far too much nesting
         if(remainingRecoveryFrames != 0)
             remainingRecoveryFrames--;
         var pObj = physics.PHYSICS_OBJECTS.get(0);
         GraphicsHandler.Animation anim = null;
 
-
         //========================== tick controls and movement =====================================================
-        if(remainingDashDuration != 0 && !won && !dead)
+        if(remainingDashDuration != 0 && !won && !lose)
         {
             anim = graphics.Animations.get( GraphicsHandler.AnimationNames.PLAYER_RUN);
             graphics.emitParticlesPresetOne(new Vector2(pObj.POS.x,pObj.POS.y));
 
-            if(remainingDashDuration == dashDuration)
+            if(remainingDashDuration == dashDuration) //tick dash state
             {
                 //set vel
                 Vector2 dir = new Vector2(0.0f,0.0f);
@@ -288,7 +310,7 @@ public class Main extends PApplet
                 pObj.GRAVITY_MULTIPLIER = 1.0f;
             }
         }
-        else if (!won && !dead)
+        else if (!won && !lose) // tick regular player state
         {
 
             if (right) {
@@ -307,7 +329,9 @@ public class Main extends PApplet
                 anim = graphics.Animations.get(GraphicsHandler.AnimationNames.PLAYER_RUN);
                 dirRight = false;
             }
-            if (up && pObj.touchingObject && pObj.hitNormal.y != -1) {
+            if (up && pObj.touchingObject && pObj.hitNormal.y != -1)
+            {
+                graphics.emitParticlesPresetTwo(new Vector2(pObj.POS.x,pObj.POS.y));
                 //differentiate wall jumps from ground
 
                 if (pObj.hitNormal.y != 0)
@@ -315,6 +339,7 @@ public class Main extends PApplet
                     pObj.VELOCITY.y = jumpVel;
                     jumping = true;
                     graphics.Animations.get(GraphicsHandler.AnimationNames.PLAYER_JUMP).restartWithoutRepeat();
+
                 }
                 else
                 {
@@ -363,6 +388,8 @@ public class Main extends PApplet
             }
         }
 
+        if(pObj.touchingObject && pObj.hitNormal.y == 1 && Math.round(pObj.VELOCITY.x ) != 0) //ground particles
+            graphics.emitParticlesPresetThree(new Vector2(pObj.POS.x,pObj.POS.y - 20.0f));1
 
         //================================= check win lose conditions ==================================================
         if(physics.PHYSICS_OBJECTS.get(physics.PHYSICS_OBJECTS.size()-1).touchingObject)
@@ -370,15 +397,15 @@ public class Main extends PApplet
             won = true;
             pObj.VELOCITY.x = 0;
         }
-        if(physics.PHYSICS_OBJECTS.get(physics.PHYSICS_OBJECTS.size()-2).touchingObject && !dead)
+        if(physics.PHYSICS_OBJECTS.get(physics.PHYSICS_OBJECTS.size()-2).touchingObject && !lose)
         {
-            dead = true;
+            lose = true;
             graphics.Animations.get(GraphicsHandler.AnimationNames.PLAYER_DIE).restartWithoutRepeat();
         }
-        if(dead)
+        if(lose)
             anim = graphics.Animations.get(GraphicsHandler.AnimationNames.PLAYER_DIE);
 
-        if(won && !dead)
+        if(won && !lose)
         {
             text("YOU WIN!\nPress space to go to level 2, press backspace to go to level 1",sketchWidth()/2.0f,sketchHeight()/2.0f);
         }
@@ -386,7 +413,7 @@ public class Main extends PApplet
         //===============================  now draw ===============================================================
         if (anim == null)
             anim = graphics.Animations.get(GraphicsHandler.AnimationNames.PLAYER_IDLE);
-        Vector3 screenPos = graphics.worldToScreenSpace(pObj.POS);
+        Vector3 screenPos = graphics.worldToScreenSpace(pObj.POS).add(new Vector3(0.0f,-30.0f,0.0f));
         if(dirRight)
         {
             image(anim.getCurrentImage(),screenPos.x - 125 ,screenPos.y - 125,250,250);
@@ -418,10 +445,10 @@ public class Main extends PApplet
 
     void renderHitboxes()
     {
-        var i = physics.PHYSICS_OBJECTS.iterator();
-        while(i.hasNext())
+        for(int i = 1; i< physics.PHYSICS_OBJECTS.size(); i++)
         {
-            var obj = i.next();
+
+            var obj = physics.PHYSICS_OBJECTS.get(i);
             Vector3 pos = graphics.worldToScreenSpace(obj.POS);
 
             fill(0,255,0,125);
