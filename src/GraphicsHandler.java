@@ -1,8 +1,12 @@
+import processing.core.PApplet;
 import processing.core.PImage;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+
+import static processing.core.PApplet.lerp;
+
 public class GraphicsHandler
 {
     HashMap<AnimationNames,Animation> Animations = new HashMap<>();
@@ -139,7 +143,7 @@ public class GraphicsHandler
         PLAYER_JUMP,
         PLAYER_JUMP_END,
         PLAYER_DIE,
-        BACKGROUND_L1,
+        BACKGROUND_LAYERS,
         BACKGROUND_L2,
         BACKGROUND_L3,
     }
@@ -173,16 +177,9 @@ public class GraphicsHandler
 
         //setup backgrounds
         currentSheetIndex++; currentSheet = rawImages.get(currentSheetIndex);
-        anim = new Animation(currentSheet,1280,360,0,1);
-        Animations.put(AnimationNames.BACKGROUND_L1,anim);
+        anim = new Animation(currentSheet,896,480,0,4); anim.autoPlay = false; anim.timeTillNext = Integer.MAX_VALUE;
+        Animations.put(AnimationNames.BACKGROUND_LAYERS,anim);
 
-        currentSheetIndex++; currentSheet = rawImages.get(currentSheetIndex);
-        anim = new Animation(currentSheet,1280,360,0,1);
-        Animations.put(AnimationNames.BACKGROUND_L2,anim);
-
-        currentSheetIndex++; currentSheet = rawImages.get(currentSheetIndex);
-        anim = new Animation(currentSheet,1280,360,0,1);
-        Animations.put(AnimationNames.BACKGROUND_L3,anim);
     }
     public class Animation
     {
@@ -223,6 +220,12 @@ public class GraphicsHandler
             current = 0;
             timeTillNext = displayTime;
         }
+        void next()
+        {
+            current++;
+            if(current > frames.size())
+                current = 0;
+        }
         Animation(PImage file,int frameWidth,int frameHeight,int row,int frameCount) //uses a colum and row format for the sprite sheet
         {
             for(int i = 0; i < frameCount;i++)
@@ -246,6 +249,13 @@ public class GraphicsHandler
         {
             camPos = new Vector3(0.0f,0.0f,0.0f);
             zoom = 1;
+        }
+        void lerpCameraTo(Vector3 to)
+        {
+            float x = lerp(camPos.x,to.x - sWidth/2,0.2f);
+            float y = lerp(camPos.y,to.y - sHeight/3,0.1f);
+
+            camPos = new Vector3(x,y ,camPos.z);
         }
     }
 

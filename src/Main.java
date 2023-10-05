@@ -10,41 +10,290 @@ public class Main extends PApplet
 {
     Physics physics = new Physics();
     GraphicsHandler graphics;
-    float loseSpeed = 0.5f;
+    Inputs inputs = new Inputs();
+    Player player;
+    float loseSpeed = 0;
     int currentLevel = 0;
     public void settings()
     {
-
-        fullScreen();
+        noSmooth();
+       size(1600,900);
+      // fullScreen();
     }
 
     public void setup()
     {
+
         frameRate(60);
         rectMode(2);
         fill(125,125,255,255);
 
         //load graphical assets
+
         List<PImage> images = new ArrayList<>();
         PImage image =  loadImage("Assets/PLAYER_SHEET_1.png"); images.add(image);
-
-        //backgrounds
-        image =  loadImage("Assets/SideScroller/background/bg_layer_1.png"); images.add(image);
-        image =  loadImage("Assets/SideScroller/background/bg_layer_2.png"); images.add(image);
-        image =  loadImage("Assets/SideScroller/background/bg_layer_3.png"); images.add(image);
+        image = loadImage("Assets/Miami-synth-files/Miami-synth-files/Layers/bgSheet.png"); images.add(image);
         graphics = new GraphicsHandler(images ,sketchWidth(),sketchHeight());
 
         loadLevelOne();
 
-        delay(1000);
+    }
+    public void draw()
+    {
+        physics.physicsTick(0.0f);
+        graphics.tickGraphics();
+
+        player.tick();
+        graphics.camera.lerpCameraTo(player.pObj.POS.subtract(new Vector3(0.0f,-200.0f,0.0f)));
+        drawAll();
+        tickWinLoseCondition();
+    }
+    void drawAll()
+    {
+        background(0);
+        drawBackground();
+        drawParticles();
+        drawWorld();
+        drawPlayer();
+
+        if(player.won)
+            showWin();
+        if(player.lose)
+            showLose();
+        if(!player.started)
+            drawPreStart();
+    }
+    void drawPreStart()
+    {
+        fill(0,125);
+        rect(-2000,-2000,4000,4000);
+        textSize(40.0f);
+        float x = (float)graphics.sWidth/2.0f;
+        float y  = (float)graphics.sHeight/2.0f;
+
+        fill(255);
+        text("Arrow keys to move, shift to dash, backspace to retry",x,y);
+    }
+    void drawWorld() //draws all physics objects other than player
+    {
+        for(int i = 1; i< physics.PHYSICS_OBJECTS.size(); i++)
+        {
+
+            var obj = physics.PHYSICS_OBJECTS.get(i);
+            Vector3 pos = graphics.worldToScreenSpace(obj.POS);
+
+
+
+            if(obj.HIT_BOX_SQUARE.size() != 0)
+            {
+                //DRAW RECT WITH BASIC DECORATION USING PRIMITIVES
+                float w = obj.HIT_BOX_SQUARE.get(0).widthHeight.x;
+                float h = obj.HIT_BOX_SQUARE.get(0).widthHeight.y;
+
+                stroke(0, 0, 0,0); //transparent base
+                fill(0,0,0,200);
+                rect(pos.x,pos.y,w,h);
+
+                fill(0,0,0,0);
+                strokeWeight(10.0f);
+                stroke(11, 11, 21);
+                rect(pos.x,pos.y,w-25,h-25);
+
+                fill(0,0,0,0);
+                strokeWeight(5.0f);
+                stroke(21, 21, 31);
+                rect(pos.x,pos.y,w-20,h-20);
+
+                strokeWeight(10.0f);
+                stroke(33, 33, 56);
+                rect(pos.x,pos.y,w-15,h-15);
+
+                strokeWeight(10.0f);
+                stroke(40, 42, 94);
+                rect(pos.x,pos.y,w-10,h-10);
+
+                strokeWeight(5.0f);
+                stroke(38, 44, 158);
+                rect(pos.x,pos.y,w-5,h-5);
+
+                strokeWeight(3.0f);
+                stroke(142, 28, 255);
+                rect(pos.x,pos.y,w-2,h-2);
+
+
+                stroke(0, 0, 0); //outline
+                strokeWeight(1.0f);
+                fill(0,0,0,0);
+                rect(pos.x,pos.y,w,h);
+            }
+
+
+
+
+
+            if(obj.HIT_BOX_CIRCLE.size() != 0)
+            {
+                circle(pos.x,pos.y,obj.HIT_BOX_CIRCLE.get(0).RADIUS);
+            }
+        }
+    }
+    void drawBackground() //tiles, calculates parallax and renders all 3 background layers
+    {
+        Vector3 pos,relative; float paralaxValue;int x ;
+        float sizeX;
+        float sizeY;
+        var anim = graphics.Animations.get(GraphicsHandler.AnimationNames.BACKGROUND_LAYERS);
+        anim.restartWithoutRepeat();
+        sizeX = 896*4.5f;
+        sizeY = 240*4.5f;
+        float adjust = 1.0f;
+        float yShift; float yAdjust = -0f;
+
+
+        yAdjust = -100f;
+        yShift = 0.05f;
+        paralaxValue = 0.3f;
+        pos = new Vector3(graphics.camera.camPos.x *-1,(graphics.camera.camPos.y * yShift) + yAdjust,0.0f);
+        x = Math.round(graphics.camera.camPos.x/(sizeX / paralaxValue));
+        pos.x += x*sizeX/paralaxValue;
+        pos.x *= paralaxValue;
+        image(anim.getCurrentImage(),pos.x,pos.y,sizeX,sizeY);
+        image(anim.getCurrentImage(),pos.x-(sizeX/adjust),pos.y,sizeX,sizeY);
+        image(anim.getCurrentImage(),pos.x+(sizeX/adjust),pos.y,sizeX,sizeY);
+        anim.next();
+
+        yAdjust = -200f;
+        yShift = 0.5f;
+        paralaxValue = 0.7f;
+        pos = new Vector3(graphics.camera.camPos.x *-1,(graphics.camera.camPos.y * yShift) + yAdjust,0.0f);
+        x = Math.round(graphics.camera.camPos.x/(sizeX / paralaxValue));
+        pos.x += x*sizeX/paralaxValue;
+        pos.x *= paralaxValue;
+        image(anim.getCurrentImage(),pos.x,pos.y,sizeX,sizeY);
+        image(anim.getCurrentImage(),pos.x-(sizeX/adjust),pos.y,sizeX,sizeY);
+        image(anim.getCurrentImage(),pos.x+(sizeX/adjust),pos.y,sizeX,sizeY);
+        anim.next();
+
+        yAdjust = -150f;
+        yShift = 0.7f;
+        paralaxValue = 0.8f;
+        pos = new Vector3(graphics.camera.camPos.x *-1,(graphics.camera.camPos.y * yShift) + yAdjust,0.0f);
+        x = Math.round(graphics.camera.camPos.x/(sizeX / paralaxValue));
+        pos.x += x*sizeX/paralaxValue;
+        pos.x *= paralaxValue;
+        image(anim.getCurrentImage(),pos.x,pos.y,sizeX,sizeY);
+        image(anim.getCurrentImage(),pos.x-(sizeX/adjust),pos.y,sizeX,sizeY);
+        image(anim.getCurrentImage(),pos.x+(sizeX/adjust),pos.y,sizeX,sizeY);
+        anim.next();
+
+        yAdjust = -100f;
+        yShift = 0.9f;
+        paralaxValue = 0.9f;
+        pos = new Vector3(graphics.camera.camPos.x *-1,(graphics.camera.camPos.y * yShift) + yAdjust,0.0f);
+        x = Math.round(graphics.camera.camPos.x/(sizeX / paralaxValue));
+        pos.x += x*sizeX/paralaxValue;
+        pos.x *= paralaxValue;
+        image(anim.getCurrentImage(),pos.x,pos.y,sizeX,sizeY);
+        image(anim.getCurrentImage(),pos.x-(sizeX/adjust),pos.y,sizeX,sizeY);
+        image(anim.getCurrentImage(),pos.x+(sizeX/adjust),pos.y,sizeX,sizeY);
+        anim.next();
+
+
+    }
+    void drawPlayer()
+    {
+        Vector3 screenPos = graphics.worldToScreenSpace(player.pObj.POS).add(new Vector3(0.0f,-20.0f,0.0f));
+        if(player.dirRight)
+        {
+            image(player.anim.getCurrentImage(),screenPos.x - 125 ,screenPos.y - 125,250,250);
+        }
+        else
+        {//flip the image
+            pushMatrix();
+            translate((screenPos.x - 125), (screenPos.y - 125));
+            scale(-1.0f, 1.0f);
+            translate(-(screenPos.x + 125), -(screenPos.y - 125));
+
+            image(player.anim.getCurrentImage(), screenPos.x - 125, screenPos.y - 125, 250, 250);
+            popMatrix();
+        }
+    }
+    void drawParticles()
+    {
+        for(var x: graphics.particles)
+        {
+            int r,g,b,a;
+            r = Math.round(x.color.x*255.0f);   g = Math.round(x.color.y*255.0f);   b = Math.round(x.color.z*255.0f);   a = Math.round(x.alpha*255.0f);
+            fill(r,g,b,a);
+            var vertices = x.getVertices();
+            stroke(0,0,0,0);
+            beginShape();
+            for(var y : vertices)
+            {
+                var screenPos = graphics.worldToScreenSpace(new Vector3(y.x,y.y,0.0f));
+                vertex(screenPos.x, screenPos.y);
+            }
+            endShape();
+        }
+    }
+    void tickWinLoseCondition()
+    {
+        if(!player.started)
+            return;
+
+        //================================= check win lose conditions ==================================================
+        var pObj = physics.PHYSICS_OBJECTS.get(0);
+        if(physics.PHYSICS_OBJECTS.get(physics.PHYSICS_OBJECTS.size()-1).touchingObject && !player.lose)
+        {
+            player.won = true;
+            pObj.VELOCITY.x = 0;
+        }
+        if(physics.PHYSICS_OBJECTS.get(physics.PHYSICS_OBJECTS.size()-2).touchingObject && !player.won)
+        {
+            player.lose = true;
+            graphics.Animations.get(GraphicsHandler.AnimationNames.PLAYER_DIE).restartWithoutRepeat();
+        }
+        var obj = physics.PHYSICS_OBJECTS.get(physics.PHYSICS_OBJECTS.size()-2);
+        obj.POS.x += loseSpeed;
+
+        if(inputs.backspace)
+        {
+            if (currentLevel == 0)
+                loadLevelOne();
+            else
+                loadLevelTwo();
+        }
+    }
+
+    void showWin()
+    {
+        textSize(30); fill(255,255,255);
+        text("YOU WIN!\nPress space to go to level 2, press backspace to go to level 1",sketchWidth()/2.0f,sketchHeight()/2.0f);
+    }
+    void showLose()
+    {
+        textSize(30); fill(255,255,255);
+        text("YOU LOSE!\nPress space to retry, or press backspace to go to level one",sketchWidth()/2.0f,sketchHeight()/2.0f);
+        return;
+    }
+    public static void main(String[] args)
+    {
+        PApplet.main("Main");
+    }
+
+    public void keyPressed(KeyEvent event)
+    {
+        inputs.keyPressed(event);
+    }
+
+    public void keyReleased(KeyEvent event)
+    {
+        inputs.keyReleased(event);
     }
     void loadLevelOne()
     {
-        won = false;
-        lose = false;
         physics = new Physics();
         physics.WORLD_GRAVITY = -0.3f;
-
         loseSpeed = 4.55f;
 
         Object obj;
@@ -53,7 +302,7 @@ public class Main extends PApplet
         obj = physics.CreateObject(new Vector3(0.0f,50.0f,0f),100.0f); obj.ELASTICITY = 0.05f;
 
         //now add ground
-        obj = physics.CreateObject(new Vector3(0.0f,0.0f,0f),new Vector2(10000.0f,1.0f)); obj.TYPE = Type.Static;//b
+        obj = physics.CreateObject(new Vector3(0.0f,-1000.0f,0f),new Vector2(10000.0f,1000.0f)); obj.TYPE = Type.Static;//b
 
         //now obstacles
         obj = physics.CreateObject(new Vector3(1000.0f,100.0f,0f),new Vector2(200.0f,100.0f)); obj.TYPE = Type.Static;
@@ -68,11 +317,14 @@ public class Main extends PApplet
         obj = physics.CreateObject(new Vector3(-500.0f,15.0f,0f),new Vector2(100.0f,5000.0f)); obj.TYPE = Type.Static;
         //WIN CONDITION OBJECT, ALLWAYS LAST INDEX
         obj = physics.CreateObject(new Vector3(4000.0f,5000.0f,0f),new Vector2(100.0f,5000.0f)); obj.TYPE = Type.Static;
+
+        player = new Player(physics,graphics,inputs);
+        player.won = false;
+        player.lose = false;
+        player.started = false;
     }
     void loadLevelTwo()
     {
-        won = false;
-        lose = false;
         physics = new Physics();
         physics.WORLD_GRAVITY = -0.3f;
 
@@ -99,371 +351,10 @@ public class Main extends PApplet
         obj = physics.CreateObject(new Vector3(-500.0f,15.0f,0f),new Vector2(100.0f,5000.0f)); obj.TYPE = Type.Static;
         //WIN CONDITION OBJECT, ALLWAYS LAST INDEX
         obj = physics.CreateObject(new Vector3(4000.0f,5000.0f,0f),new Vector2(100.0f,5000.0f)); obj.TYPE = Type.Static;
-    }
-    public void draw()
-    {
-        physics.physicsTick(0.0f);
-        graphics.tickGraphics();
 
-        background(0);
-        //tickBackground();
-        drawParticles();
-        playerTick();
-        tickWinLoseCondition();
-        tickCamera();
-        renderHitboxes();
-    }
-    void drawParticles()
-    {
-        for(var x: graphics.particles)
-        {
-            int r,g,b,a;
-            r = Math.round(x.color.x*255.0f);   g = Math.round(x.color.y*255.0f);   b = Math.round(x.color.z*255.0f);   a = Math.round(x.alpha*255.0f);
-            fill(r,g,b,a);
-            var vertices = x.getVertices();
-            stroke(0,0,0,0);
-            beginShape();
-            for(var y : vertices)
-            {
-                var screenPos = graphics.worldToScreenSpace(new Vector3(y.x,y.y,0.0f));
-                vertex(screenPos.x, screenPos.y);
-            }
-            endShape();
-        }
-    }
-    void tickWinLoseCondition()
-    {
-        if(lose)
-           showLose();
-        if(won)
-            showWin();
-        
-        var obj = physics.PHYSICS_OBJECTS.get(physics.PHYSICS_OBJECTS.size()-2);
-        obj.POS.x += loseSpeed;
-    }
-    void tickBackground() //tiles, calculates parallax and renders all 3 background layers
-    {
-        Vector3 pos,relative; float paralaxValue;int x ;
-        float sizeX = 1280;
-        float sizeY = 360;
-
-        paralaxValue = 0.3f;
-        pos = new Vector3(graphics.camera.camPos.x *-1,0.0f,0.0f);
-        x = Math.round(graphics.camera.camPos.x/(sizeX / paralaxValue));
-        pos.x += x*sizeX/paralaxValue;
-        pos.x *= paralaxValue;
-        image(graphics.Animations.get(GraphicsHandler.AnimationNames.BACKGROUND_L3).getCurrentImage(),pos.x,pos.y,sizeX,sizeY);
-        image(graphics.Animations.get(GraphicsHandler.AnimationNames.BACKGROUND_L3).getCurrentImage(),pos.x-sizeX,pos.y,sizeX,sizeY);
-        image(graphics.Animations.get(GraphicsHandler.AnimationNames.BACKGROUND_L3).getCurrentImage(),pos.x+sizeX,pos.y,sizeX,sizeY);
-
-        /*
-        paralaxValue = 0.5f;
-        pos = new Vector3(graphics.camera.camPos.x *-1,0.0f,0.0f);
-        x = Math.round(graphics.camera.camPos.x/(sizeX / paralaxValue));
-        pos.x += x*sizeX/paralaxValue;
-        pos.x *= paralaxValue;
-        image(graphics.Animations.get(GraphicsHandler.AnimationNames.BACKGROUND_L2).getCurrentImage(),pos.x,pos.y,sizeX,sizeY);
-        image(graphics.Animations.get(GraphicsHandler.AnimationNames.BACKGROUND_L2).getCurrentImage(),pos.x-sizeX,pos.y,sizeX,sizeY);
-        image(graphics.Animations.get(GraphicsHandler.AnimationNames.BACKGROUND_L2).getCurrentImage(),pos.x+sizeX,pos.y,sizeX,sizeY);
-
-
-
-        paralaxValue = 0.8f;
-        pos = new Vector3(graphics.camera.camPos.x *-1,0.0f,0.0f);
-        x = Math.round(graphics.camera.camPos.x/(sizeX / paralaxValue));
-        pos.x += x*sizeX/paralaxValue;
-        pos.x *= paralaxValue;
-        image(graphics.Animations.get(GraphicsHandler.AnimationNames.BACKGROUND_L1).getCurrentImage(),pos.x,pos.y,sizeX,sizeY);
-        image(graphics.Animations.get(GraphicsHandler.AnimationNames.BACKGROUND_L1).getCurrentImage(),pos.x-sizeX,pos.y,sizeX,sizeY);
-        image(graphics.Animations.get(GraphicsHandler.AnimationNames.BACKGROUND_L1).getCurrentImage(),pos.x+sizeX,pos.y,sizeX,sizeY);
-
-         */
-    }
-    void showWin()
-    {
-
-    }
-    void showLose()
-    {
-        textSize(30); fill(255,255,255);
-        text("YOU LOSE!\nPress space to retry, or press backspace to go to level one",sketchWidth()/2.0f,sketchHeight()/2.0f);
-        return;
-    }
-    //player vars
-    boolean dirRight = true;
-    boolean jumping = false;
-    boolean lose = false;
-    PImage obstacle;
-    boolean won = false;
-    Boolean left = false,right = false,up = false,down = false,dash = false;
-    float xVelMulti = 2.5f;
-    float jumpVel = 10;
-    float xVelFriction = 0.825f;
-    float walljumpXvel = 14.0f;
-    float airFriction = 0.96f;
-    float xVelMultiAir = 0.5f;
-    int dashRecoveryFrames = 120;
-    int remainingRecoveryFrames = 0;    
-    int dashDuration = 10;
-    int remainingDashDuration = dashDuration;
-    float dashVel = 15.0f;
-    float fastFallAccel = -0.5f;
-    float fastFallThreshold = -3;
-
-    //region input
-    public void keyPressed(KeyEvent event)
-    {
-        switch (event.getKeyCode())
-        {
-            case UP:
-                up = true;
-                break;
-            case DOWN:
-                down = true;
-                break;
-            case RIGHT:
-                right = true;
-                break;
-            case LEFT:
-                left = true;
-                break;
-            case SHIFT:
-                dash = true;
-                break;
-            case 32: //spacebar
-                if(!lose && !won)
-                    break;
-
-                if(lose)
-                {
-                    if (currentLevel == 1)
-                        loadLevelOne();
-                    else loadLevelTwo();
-                    break;
-                }
-
-                //on win since there are only two levels then the player should only be loading level two if they win level two or one.
-                loadLevelTwo();
-            case BACKSPACE:
-                if(!won && !lose)
-                    break;
-                loadLevelOne();
-        }
-    }
-    public void keyReleased(KeyEvent event)
-    {
-        switch (event.getKeyCode())
-        {
-            case UP:
-                up = false;
-                break;
-            case DOWN:
-                down = false;
-                break;
-            case RIGHT:
-                right = false;
-                break;
-            case LEFT:
-                left = false;
-                break;
-            case SHIFT:
-                dash = false;
-                break;
-        }
-    }
-    //endregion
-    void playerTick()//this method handles player behaviour and visuals
-    {
-        //ideally I would have made it its own class, way to many out of scope variables and far too much nesting
-        if(remainingRecoveryFrames != 0)
-            remainingRecoveryFrames--;
-        var pObj = physics.PHYSICS_OBJECTS.get(0);
-        GraphicsHandler.Animation anim = null;
-
-        //========================== tick controls and movement =====================================================
-        if(remainingDashDuration != 0 && !won && !lose)
-        {
-            anim = graphics.Animations.get( GraphicsHandler.AnimationNames.PLAYER_RUN);
-            graphics.emitParticlesPresetOne(new Vector2(pObj.POS.x,pObj.POS.y));
-
-            if(remainingDashDuration == dashDuration) //tick dash state
-            {
-                //set vel
-                Vector2 dir = new Vector2(0.0f,0.0f);
-                if(up)
-                    dir.y = 1.0f;
-                if(down)
-                    dir.y = -1.0f;
-                if(left)
-                    dir.x = -1.0f;
-                if(right)
-                    dir.x = 1.0f;
-
-                pObj.VELOCITY = dir.multiply(dashVel);
-                pObj.ELASTICITY = 1.0f;
-                pObj.GRAVITY_MULTIPLIER = 0;
-            }
-            remainingDashDuration--;
-            if(remainingDashDuration == 0)
-            {
-                pObj.ELASTICITY = 0.05f;
-                pObj.GRAVITY_MULTIPLIER = 1.0f;
-            }
-        }
-        else if (!won && !lose) // tick regular player state
-        {
-
-            if (right) {
-                if (pObj.touchingObject)
-                    pObj.VELOCITY.x += xVelMulti;
-                else
-                    pObj.VELOCITY.x += xVelMultiAir;
-                anim = graphics.Animations.get(GraphicsHandler.AnimationNames.PLAYER_RUN);
-                dirRight = true;
-            }
-            if (left) {
-                if (pObj.touchingObject)
-                    pObj.VELOCITY.x -= xVelMulti;
-                else
-                    pObj.VELOCITY.x -= xVelMultiAir;
-                anim = graphics.Animations.get(GraphicsHandler.AnimationNames.PLAYER_RUN);
-                dirRight = false;
-            }
-            if (up && pObj.touchingObject && pObj.hitNormal.y != -1)
-            {
-                graphics.emitParticlesPresetTwo(new Vector2(pObj.POS.x,pObj.POS.y));
-                //differentiate wall jumps from ground
-
-                if (pObj.hitNormal.y != 0)
-                {
-                    pObj.VELOCITY.y = jumpVel;
-                    jumping = true;
-                    graphics.Animations.get(GraphicsHandler.AnimationNames.PLAYER_JUMP).restartWithoutRepeat();
-
-                }
-                else
-                {
-                    pObj.VELOCITY.y = jumpVel;
-                    if (pObj.hitNormal.x > 0)
-                    {
-                        pObj.VELOCITY.x = walljumpXvel;
-                        dirRight = true;
-                    }
-                    else
-                    {
-                        pObj.VELOCITY.x = -walljumpXvel;
-                        dirRight = false;
-                    }
-
-                    jumping = true;
-                    graphics.Animations.get(GraphicsHandler.AnimationNames.PLAYER_JUMP).restartWithoutRepeat();
-                }
-
-            }
-            if (down && !pObj.touchingObject)
-            {
-                if(pObj.VELOCITY.y > fastFallThreshold)
-                pObj.VELOCITY.y = fastFallThreshold - 0.1f;
-                else
-                    pObj.VELOCITY.y += fastFallAccel;
-            }
-            if (dash && remainingRecoveryFrames == 0)
-            {
-                remainingDashDuration = dashDuration;
-                remainingRecoveryFrames = dashRecoveryFrames;
-            }
-
-
-            if (pObj.touchingObject)
-                pObj.VELOCITY.x *= xVelFriction;
-            else
-                pObj.VELOCITY.x *= airFriction;
-
-
-            if (jumping) //handle jump animations
-            {
-                anim = graphics.Animations.get(GraphicsHandler.AnimationNames.PLAYER_JUMP);
-                if (anim.current == anim.frames.size() - 1 && pObj.touchingObject)
-                    jumping = false;
-            }
-        }
-
-        if(pObj.touchingObject && pObj.hitNormal.y == 1 && Math.round(pObj.VELOCITY.x ) != 0) //ground particles
-            graphics.emitParticlesPresetThree(new Vector2(pObj.POS.x,pObj.POS.y - 20.0f));1
-
-        //================================= check win lose conditions ==================================================
-        if(physics.PHYSICS_OBJECTS.get(physics.PHYSICS_OBJECTS.size()-1).touchingObject)
-        {
-            won = true;
-            pObj.VELOCITY.x = 0;
-        }
-        if(physics.PHYSICS_OBJECTS.get(physics.PHYSICS_OBJECTS.size()-2).touchingObject && !lose)
-        {
-            lose = true;
-            graphics.Animations.get(GraphicsHandler.AnimationNames.PLAYER_DIE).restartWithoutRepeat();
-        }
-        if(lose)
-            anim = graphics.Animations.get(GraphicsHandler.AnimationNames.PLAYER_DIE);
-
-        if(won && !lose)
-        {
-            text("YOU WIN!\nPress space to go to level 2, press backspace to go to level 1",sketchWidth()/2.0f,sketchHeight()/2.0f);
-        }
-
-        //===============================  now draw ===============================================================
-        if (anim == null)
-            anim = graphics.Animations.get(GraphicsHandler.AnimationNames.PLAYER_IDLE);
-        Vector3 screenPos = graphics.worldToScreenSpace(pObj.POS).add(new Vector3(0.0f,-30.0f,0.0f));
-        if(dirRight)
-        {
-            image(anim.getCurrentImage(),screenPos.x - 125 ,screenPos.y - 125,250,250);
-        }
-        else
-        {//flip the image
-            pushMatrix();
-            translate((screenPos.x - 125), (screenPos.y - 125));
-            scale(-1.0f, 1.0f);
-            translate(-(screenPos.x + 125), -(screenPos.y - 125));
-
-            image(anim.getCurrentImage(), screenPos.x - 125, screenPos.y - 125, 250, 250);
-            popMatrix();
-        }
-
-
-    }
-    void tickCamera() //this method handles lerped camera movement
-    {
-        //lerp camera to player position, its nice when its smooth and bouncy :)))))))
-        var player = physics.PHYSICS_OBJECTS.get(0);
-
-        float x = lerp(graphics.camera.camPos.x,player.POS.x - graphics.sWidth/2,0.2f);
-        float y = lerp(graphics.camera.camPos.y,player.POS.y - graphics.sHeight/3,0.1f);
-
-        graphics.camera.camPos = new Vector3(x,y ,graphics.camera.camPos.z);
-
-    }
-
-    void renderHitboxes()
-    {
-        for(int i = 1; i< physics.PHYSICS_OBJECTS.size(); i++)
-        {
-
-            var obj = physics.PHYSICS_OBJECTS.get(i);
-            Vector3 pos = graphics.worldToScreenSpace(obj.POS);
-
-            fill(0,255,0,125);
-            if(obj.HIT_BOX_SQUARE.size() != 0)
-            {
-                rect(pos.x,pos.y,obj.HIT_BOX_SQUARE.get(0).widthHeight.x,obj.HIT_BOX_SQUARE.get(0).widthHeight.y);
-            }
-            if(obj.HIT_BOX_CIRCLE.size() != 0)
-            {
-                circle(pos.x,pos.y,obj.HIT_BOX_CIRCLE.get(0).RADIUS);
-            }
-        }
-    }
-    public static void main(String[] args)
-    {
-        PApplet.main("Main");
+        player = new Player(physics,graphics,inputs);
+        player.won = false;
+        player.lose = false;
+        player.started = false;
     }
 }
