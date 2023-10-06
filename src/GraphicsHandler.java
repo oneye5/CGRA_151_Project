@@ -260,7 +260,7 @@ public class GraphicsHandler
         void lerpCameraTo(Vector3 to)
         {
             float x = lerp(camPos.x,to.x - sWidth/2,0.2f);
-            float y = lerp(camPos.y,to.y - sHeight/3,0.1f);
+            float y = lerp(camPos.y,to.y - sHeight/3,0.2f);
 
             camPos = new Vector3(x,y ,camPos.z);
         }

@@ -8,17 +8,17 @@ import java.util.List;
 
 public class Main extends PApplet
 {
-    Physics physics = new Physics();
-    GraphicsHandler graphics;
-    Inputs inputs = new Inputs();
-    Player player;
-    float loseSpeed = 0;
+    Physics physics = new Physics(); //this class handles all physics believe it or not, it also is used for keeping track of where all objects are
+    GraphicsHandler graphics; //this class stores and handles animations as well as the different background frames which are stored as an animation
+    //graphics also has a camera sub-class that also has a useful method that converts world space to screen space
+    Inputs inputs = new Inputs(); //this class stores all the buttons pressed for convenient use
+    Player player; //this class controls all player manipulation, it also chooses what animation that should be displayed based on its state
+    float loseSpeed = 0; //this variable is assigned on a per level basis and controls the speed of the scary death wall thing
     int currentLevel = 0;
     public void settings()
     {
         noSmooth();
-       size(1600,900);
-      // fullScreen();
+        fullScreen();
     }
 
     public void setup()
@@ -83,7 +83,7 @@ public class Main extends PApplet
         fill(0,125);
         rect(-2000,-2000,4000,4000);
         textSize(40.0f);
-        float x = (float)graphics.sWidth/2.0f;
+        float x = (float)graphics.sWidth/2.0f; x-= 400;
         float y  = (float)graphics.sHeight/2.0f;
 
         fill(255);
@@ -144,8 +144,6 @@ public class Main extends PApplet
 
 
 
-
-
             if(obj.HIT_BOX_CIRCLE.size() != 0)
             {
                 circle(pos.x,pos.y,obj.HIT_BOX_CIRCLE.get(0).RADIUS);
@@ -165,7 +163,7 @@ public class Main extends PApplet
         float yShift; float yAdjust = -0f;
 
 
-        yAdjust = -100f;
+        yAdjust = -100f; yAdjust +=180;
         yShift = 0.05f;
         paralaxValue = 0.3f;
         pos = new Vector3(graphics.camera.camPos.x *-1,(graphics.camera.camPos.y * yShift) + yAdjust,0.0f);
@@ -177,7 +175,7 @@ public class Main extends PApplet
         image(anim.getCurrentImage(),pos.x+(sizeX/adjust),pos.y,sizeX,sizeY);
         anim.next();
 
-        yAdjust = -200f;
+        yAdjust = -200f;yAdjust +=180;
         yShift = 0.5f;
         paralaxValue = 0.7f;
         pos = new Vector3(graphics.camera.camPos.x *-1,(graphics.camera.camPos.y * yShift) + yAdjust,0.0f);
@@ -189,7 +187,7 @@ public class Main extends PApplet
         image(anim.getCurrentImage(),pos.x+(sizeX/adjust),pos.y,sizeX,sizeY);
         anim.next();
 
-        yAdjust = -150f;
+        yAdjust = -150f;yAdjust +=180;
         yShift = 0.7f;
         paralaxValue = 0.8f;
         pos = new Vector3(graphics.camera.camPos.x *-1,(graphics.camera.camPos.y * yShift) + yAdjust,0.0f);
@@ -201,16 +199,22 @@ public class Main extends PApplet
         image(anim.getCurrentImage(),pos.x+(sizeX/adjust),pos.y,sizeX,sizeY);
         anim.next();
 
-        yAdjust = -100f;
+        yAdjust = -100f;yAdjust +=100;
         yShift = 0.9f;
         paralaxValue = 0.9f;
         pos = new Vector3(graphics.camera.camPos.x *-1,(graphics.camera.camPos.y * yShift) + yAdjust,0.0f);
         x = Math.round(graphics.camera.camPos.x/(sizeX / paralaxValue));
         pos.x += x*sizeX/paralaxValue;
         pos.x *= paralaxValue;
+
+        fill(0);
+        stroke(0,0);
+        rect(pos.x,pos.y + 2110,6000.0f,sizeY);
+
         image(anim.getCurrentImage(),pos.x,pos.y,sizeX,sizeY);
         image(anim.getCurrentImage(),pos.x-(sizeX/adjust),pos.y,sizeX,sizeY);
         image(anim.getCurrentImage(),pos.x+(sizeX/adjust),pos.y,sizeX,sizeY);
+
         anim.next();
 
 
@@ -280,18 +284,33 @@ public class Main extends PApplet
             else
                 loadLevelTwo();
         }
+
+        if(inputs.space && player.won)
+            loadLevelTwo();
+        if(inputs.space && player.lose)
+        {
+            if (currentLevel == 0)
+                loadLevelOne();
+            else
+                loadLevelTwo();
+        }
+
+
     }
 
     void showWin()
     {
+        fill(0,125);
+        rect(-2000,-2000,4000,4000);
         textSize(30); fill(255,255,255);
         text("YOU WIN!\nPress space to go to level 2, press backspace to go to level 1",sketchWidth()/2.0f,sketchHeight()/2.0f);
     }
     void showLose()
     {
+        fill(0,125);
+        rect(-2000,-2000,4000,4000);
         textSize(30); fill(255,255,255);
         text("YOU LOSE!\nPress space to retry, or press backspace to go to level one",sketchWidth()/2.0f,sketchHeight()/2.0f);
-        return;
     }
     public static void main(String[] args)
     {
@@ -311,7 +330,7 @@ public class Main extends PApplet
     {
         physics = new Physics();
         physics.WORLD_GRAVITY = -0.3f;
-        loseSpeed = 4.55f;
+        loseSpeed = 6.0f;
 
         Object obj;
 
@@ -319,21 +338,42 @@ public class Main extends PApplet
         obj = physics.CreateObject(new Vector3(0.0f,50.0f,0f),100.0f); obj.ELASTICITY = 0.05f;
 
         //now add ground
-        obj = physics.CreateObject(new Vector3(0.0f,-1000.0f,0f),new Vector2(10000.0f,1000.0f)); obj.TYPE = Type.Static;//b
+        obj = physics.CreateObject(new Vector3(0.0f,-1000.0f,0f),new Vector2(20000.0f,1000.0f)); obj.TYPE = Type.Static;
 
         //now obstacles
-        obj = physics.CreateObject(new Vector3(1000.0f,100.0f,0f),new Vector2(200.0f,100.0f)); obj.TYPE = Type.Static;
-        obj = physics.CreateObject(new Vector3(1400.0f,200.0f,0f),new Vector2(200.0f,200.0f)); obj.TYPE = Type.Static;
+        obj = physics.CreateObject(new Vector3(1000.0f,50.0f,0f),new Vector2(200.0f,50.0f)); obj.TYPE = Type.Static;
+        obj = physics.CreateObject(new Vector3(1400.0f,100.0f,0f),new Vector2(200.0f,100.0f)); obj.TYPE = Type.Static;
 
-        obj = physics.CreateObject(new Vector3(1800.0f,600.0f,0f),new Vector2(200.0f,600.0f)); obj.TYPE = Type.Static;
-        obj = physics.CreateObject(new Vector3(2600.0f,1200.0f,0f),new Vector2(100.0f,1000.0f)); obj.TYPE = Type.Static;
 
-        obj = physics.CreateObject(new Vector3(3200.0f,600.0f,0f),new Vector2(200.0f,600.0f)); obj.TYPE = Type.Static;
+        obj = physics.CreateObject(new Vector3(2000.0f,600.0f,0f),new Vector2(100.0f,400.0f)); obj.TYPE = Type.Static; //walljump
+        obj = physics.CreateObject(new Vector3(2400.0f,400.0f,0f),new Vector2(100.0f,400.0f)); obj.TYPE = Type.Static;
 
+        obj = physics.CreateObject(new Vector3(3200.0f,50.0f,0f),new Vector2(50.0f,50.0f)); obj.TYPE = Type.Static; //STEPS
+        obj = physics.CreateObject(new Vector3(3600.0f,75.0f,0f),new Vector2(50.0f,75.0f)); obj.TYPE = Type.Static;
+        obj = physics.CreateObject(new Vector3(4000.0f,100.0f,0f),new Vector2(50.0f,100.0f)); obj.TYPE = Type.Static;
+        obj = physics.CreateObject(new Vector3(4400.0f,125.0f,0f),new Vector2(50.0f,125.0f)); obj.TYPE = Type.Static;
+        obj = physics.CreateObject(new Vector3(4800.0f,100.0f,0f),new Vector2(50.0f,100.0f)); obj.TYPE = Type.Static;
+        obj = physics.CreateObject(new Vector3(5200.0f,75.0f,0f),new Vector2(50.0f,75.0f)); obj.TYPE = Type.Static;
+        obj = physics.CreateObject(new Vector3(5600.0f,50.0f,0f),new Vector2(50.0f,50.0f)); obj.TYPE = Type.Static;
+
+        obj = physics.CreateObject(new Vector3(7000.0f,1450.0f,0f),new Vector2(1000.0f,1000.0f)); obj.TYPE = Type.Static; //ROOF
+
+
+        obj = physics.CreateObject(new Vector3(6500.0f,150.0f,0f),new Vector2(50.0f,150.0f)); obj.TYPE = Type.Static; //walls under roof
+        obj = physics.CreateObject(new Vector3(6800.0f,300.0f,0f),new Vector2(50.0f,150.0f)); obj.TYPE = Type.Static;
+        obj = physics.CreateObject(new Vector3(7100.0f,100.0f,0f),new Vector2(50.0f,100.0f)); obj.TYPE = Type.Static;
+        obj = physics.CreateObject(new Vector3(7400.0f,100.0f,0f),new Vector2(50.0f,100.0f)); obj.TYPE = Type.Static;
+        obj = physics.CreateObject(new Vector3(7700.0f,300.0f,0f),new Vector2(50.0f,150.0f)); obj.TYPE = Type.Static;
+        obj = physics.CreateObject(new Vector3(8000.0f,100.0f,0f),new Vector2(50.0f,100.0f)); obj.TYPE = Type.Static;
+
+        obj = physics.CreateObject(new Vector3(8600.0f,400.0f,0f),new Vector2(100.0f,400.0f)); obj.TYPE = Type.Static;//FINAL WALLS
+
+        obj = physics.CreateObject(new Vector3(8475.0f,200.0f,0f),new Vector2(25.0f,25.0f)); obj.TYPE = Type.Static;
+        obj = physics.CreateObject(new Vector3(8475.0f,300.0f,0f),new Vector2(25.0f,25.0f)); obj.TYPE = Type.Static;
         //lose condition, seccond to last index
         obj = physics.CreateObject(new Vector3(-500.0f,15.0f,0f),new Vector2(100.0f,5000.0f)); obj.TYPE = Type.Static;
         //WIN CONDITION OBJECT, ALLWAYS LAST INDEX
-        obj = physics.CreateObject(new Vector3(4000.0f,5000.0f,0f),new Vector2(100.0f,5000.0f)); obj.TYPE = Type.Static;
+        obj = physics.CreateObject(new Vector3(10000.0f,5000.0f,0f),new Vector2(100.0f,5000.0f)); obj.TYPE = Type.Static;
 
         player = new Player(physics,graphics,inputs);
         player.won = false;
