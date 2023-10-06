@@ -39,6 +39,8 @@ public class Player extends PApplet
         if(remainingRecoveryFrames != 0)
             remainingRecoveryFrames--;
         anim = null;
+
+        if(!lose && !won)
         tickMovement();
 
         if(lose)

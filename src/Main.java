@@ -33,6 +33,8 @@ public class Main extends PApplet
         List<PImage> images = new ArrayList<>();
         PImage image =  loadImage("Assets/PLAYER_SHEET_1.png"); images.add(image);
         image = loadImage("Assets/Miami-synth-files/Miami-synth-files/Layers/bgSheet.png"); images.add(image);
+        image = loadImage("Assets/DEATHWALLTHING.png"); images.add(image);
+        image = loadImage("Assets/GOODHAPPYWALL.png"); images.add(image);
         graphics = new GraphicsHandler(images ,sketchWidth(),sketchHeight());
 
         loadLevelOne();
@@ -55,6 +57,7 @@ public class Main extends PApplet
         drawParticles();
         drawWorld();
         drawPlayer();
+        drawWinLoseWalls();
 
         if(player.won)
             showWin();
@@ -62,6 +65,18 @@ public class Main extends PApplet
             showLose();
         if(!player.started)
             drawPreStart();
+    }
+    void drawWinLoseWalls()
+    {
+        //draw scary wall thing
+        var pos = graphics.worldToScreenSpace(physics.PHYSICS_OBJECTS.get(physics.PHYSICS_OBJECTS.size()-2).POS);
+        Vector2 size = new Vector2(1920.0f,1080.0f);
+        image(graphics.Animations.get(GraphicsHandler.AnimationNames.DEATH_WALL).getCurrentImage(),pos.x - size.x/1.5f,pos.y - size.y+75,size.x,size.y);
+        image(graphics.Animations.get(GraphicsHandler.AnimationNames.DEATH_WALL).getCurrentImage(),pos.x - size.x/1.5f,pos.y - size.y*2.0f+75,size.x,size.y);
+
+        size = new Vector2(72.0f,1920.0f);
+        pos = graphics.worldToScreenSpace(physics.PHYSICS_OBJECTS.get(physics.PHYSICS_OBJECTS.size()-1).POS);
+        image(graphics.Animations.get(GraphicsHandler.AnimationNames.WIN_WALL).getCurrentImage(),pos.x -152,pos.y +size.y + 1160,size.x,size.y);
     }
     void drawPreStart()
     {
@@ -76,7 +91,7 @@ public class Main extends PApplet
     }
     void drawWorld() //draws all physics objects other than player
     {
-        for(int i = 1; i< physics.PHYSICS_OBJECTS.size(); i++)
+        for(int i = 1; i< physics.PHYSICS_OBJECTS.size()-2; i++)
         {
 
             var obj = physics.PHYSICS_OBJECTS.get(i);
@@ -253,7 +268,9 @@ public class Main extends PApplet
             player.lose = true;
             graphics.Animations.get(GraphicsHandler.AnimationNames.PLAYER_DIE).restartWithoutRepeat();
         }
+
         var obj = physics.PHYSICS_OBJECTS.get(physics.PHYSICS_OBJECTS.size()-2);
+        if(!player.lose && !player.won)
         obj.POS.x += loseSpeed;
 
         if(inputs.backspace)

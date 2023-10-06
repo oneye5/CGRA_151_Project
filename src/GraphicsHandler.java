@@ -144,8 +144,8 @@ public class GraphicsHandler
         PLAYER_JUMP_END,
         PLAYER_DIE,
         BACKGROUND_LAYERS,
-        BACKGROUND_L2,
-        BACKGROUND_L3,
+        DEATH_WALL,
+        WIN_WALL,
     }
 
     GraphicsHandler(List<PImage> rawImages,int screenWidth,int screenHeight)
@@ -180,6 +180,13 @@ public class GraphicsHandler
         anim = new Animation(currentSheet,896,480,0,4); anim.autoPlay = false; anim.timeTillNext = Integer.MAX_VALUE;
         Animations.put(AnimationNames.BACKGROUND_LAYERS,anim);
 
+        currentSheetIndex++; currentSheet = rawImages.get(currentSheetIndex);
+        anim = new Animation(currentSheet,960,540,0,8);
+        Animations.put(AnimationNames.DEATH_WALL,anim);
+
+        currentSheetIndex++; currentSheet = rawImages.get(currentSheetIndex);
+        anim = new Animation(currentSheet,74,1920,0,11); anim.displayTime = 1;
+        Animations.put(AnimationNames.WIN_WALL,anim);
     }
     public class Animation
     {
